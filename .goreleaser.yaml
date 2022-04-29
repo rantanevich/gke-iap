@@ -1,0 +1,32 @@
+---
+env:
+- CGO_ENABLED=0
+
+before:
+  hooks:
+  - go mod download
+
+build:
+  binary: gke-iap-{{ .Os }}-{{ .Arch }}
+  goos:
+  - darwin
+  - linux
+  - windows
+  goarch:
+  - amd64
+  - arm
+  - arm64
+  goarm:
+  - 7
+  ignore:
+  - goos: windows
+    goarch: arm
+  - goos: windows
+    goarch: arm64
+
+archives:
+- name_template: "gke-iap-{{ .Os }}-{{ .Arch }}"
+  format: binary
+
+checksum:
+  name_template: checksums.txt
