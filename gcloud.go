@@ -38,8 +38,32 @@ func (g *gcloud) SetupKubectl() error {
 		args = append(args, "--region", location)
 	}
 
-	msg := fmt.Sprintf("Setting 'gke_%s_%s_%s' context in kubeconfig\n", g.opts.ProjectID, location, g.opts.ClusterName)
-	_, err = Exec(args, msg)
+	kubectlContext := fmt.Sprintf("gke_%s_%s_%s", g.opts.ProjectID, location, g.opts.ClusterName)
+
+	msg := fmt.Sprintf("Setting %s context in kubeconfig\n", kubectlContext)
+	_, err = Exec("gcloud", args, msg)
+	if err != nil {
+		return err
+	}
+
+	err = g.setupKubectlProxy(kubectlContext, location)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (g *gcloud) setupKubectlProxy(kubectlContext, location string) error {
+	args := []string{
+		"config",
+		"set-cluster",
+		"--proxy-url", fmt.Sprintf("http://127.0.0.1:%d", g.opts.LocalPort),
+		fmt.Sprintf("gke_%s_%s_%s", g.opts.ProjectID, location, g.opts.ClusterName),
+	}
+
+	msg := fmt.Sprintf("Setting http://127.0.0.1:%d HTTP proxy for %s context\n", g.opts.LocalPort, kubectlContext)
+	_, err := Exec("kubectl", args, msg)
 	if err != nil {
 		return err
 	}
@@ -65,7 +89,7 @@ func (g *gcloud) StartTunnel() error {
 	}
 
 	msg := fmt.Sprintf("Listening on port [%d]\n", g.opts.LocalPort)
-	_, err = Exec(args, msg)
+	_, err = Exec("gcloud", args, msg)
 	if err != nil {
 		return err
 	}
@@ -84,7 +108,7 @@ func (g *gcloud) getGKELocation() (string, error) {
 	}
 
 	msg := fmt.Sprintf("Fetching '%s' GKE cluster location in '%s'\n", g.opts.ClusterName, g.opts.ProjectID)
-	stdout, err := Exec(args, msg)
+	stdout, err := Exec("gcloud", args, msg)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +127,7 @@ func (g *gcloud) getGKEInstances() ([]gkeInstance, error) {
 	}
 
 	msg := fmt.Sprintf("Fetching instances of '%s' GKE cluster in '%s'\n", g.opts.ClusterName, g.opts.ProjectID)
-	stdout, err := Exec(args, msg)
+	stdout, err := Exec("gcloud", args, msg)
 	if err != nil {
 		return []gkeInstance{}, err
 	}
@@ -129,7 +153,7 @@ func GetActiveProject() string {
 		"get",
 		"project",
 	}
-	stdout, _ := Exec(args, "")
+	stdout, _ := Exec("gcloud", args, "")
 	return strings.TrimSpace(stdout)
 }
 

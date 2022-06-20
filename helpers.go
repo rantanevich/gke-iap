@@ -29,10 +29,10 @@ func IsCommandAvailable(name string) bool {
 	return true
 }
 
-func Exec(args []string, msg string) (string, error) {
+func Exec(command string, args []string, msg string) (string, error) {
 	var stdout, stderr bytes.Buffer
 
-	cmd := exec.Command("gcloud", args...)
+	cmd := exec.Command(command, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
